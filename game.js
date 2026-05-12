@@ -220,16 +220,35 @@ function updateEnemies(dt){
     // Descida: escala de 6 até CAP (ex: 6 → 18 ao longo de 24 níveis)
     const descentSpeed = ENEMY_DESCENT_SPEED + diff * (DESCENT_SPEED_CAP - ENEMY_DESCENT_SPEED);
 
-    enemies.forEach(e=>{
-        if(!e.alive)return;
-        const zigFreq = zigSpeed/30 * mv.zigSpeed;
+    // Encontrar limites da formação para clamp de grupo
+    const aliveEnemies = enemies.filter(e => e.alive);
+    if(aliveEnemies.length === 0) return;
+
+    const margin = aliveEnemies[0].w / 2 + 2;
+    let leftMostBase = GAME_W, rightMostBase = 0;
+    aliveEnemies.forEach(e => {
+        if(e.baseX < leftMostBase) leftMostBase = e.baseX;
+        if(e.baseX > rightMostBase) rightMostBase = e.baseX;
+    });
+
+    enemies.forEach(e => {
+        if(!e.alive) return;
+        const zigFreq = zigSpeed / 30 * mv.zigSpeed;
         const zigAmp = ENEMY_ZIGZAG_AMP * mv.zigAmp;
-        let xOff = Math.sin(time*zigFreq+e.phase) * zigAmp;
-        if(mv.erratic>0) xOff += Math.sin(time*3.7+e.erraticOffset) * 20 * mv.erratic * (1 + diff*0.5);
-        e.x = Math.max(e.w/2, Math.min(GAME_W - e.w/2, e.baseX + xOff));
+
+        // Calcular offset bruto do zigue-zague
+        let xOff = Math.sin(time * zigFreq + e.phase) * zigAmp;
+        if(mv.erratic > 0) xOff += Math.sin(time * 3.7 + e.erraticOffset) * 20 * mv.erratic * (1 + diff * 0.5);
+
+        // Clamp suave: reduz o offset se a formação sairia da tela
+        const finalX = e.baseX + xOff;
+        if(finalX < margin) xOff += (margin - finalX);
+        else if(finalX > GAME_W - margin) xOff -= (finalX - (GAME_W - margin));
+
+        e.x = e.baseX + xOff;
         e.baseY += descentSpeed * mv.descent * dt;
         e.y = e.baseY;
-        if(e.y>GAME_H-60){e.baseY=-20;e.y=e.baseY;}
+        if(e.y > GAME_H - 60) { e.baseY = -20; e.y = e.baseY; }
     });
 
     // Dice não atiram
