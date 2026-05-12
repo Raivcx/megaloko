@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Megamania Remake - Jogo de tiro espacial estilo Atari 2600 com pixel art retrô">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Megamania Remake</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="mobileUI">
+        <button id="btnPause" class="ctrl-btn pause-btn" aria-label="Pausar">⏸</button>
+
+        <div id="dpad" class="ctrl-zone ctrl-zone-left">
+            <button id="btnLeft" class="ctrl-btn dpad-btn" aria-label="Esquerda">◀</button>
+            <button id="btnRight" class="ctrl-btn dpad-btn" aria-label="Direita">▶</button>
+        </div>
+
+        <div id="actionZone" class="ctrl-zone ctrl-zone-right">
+            <button id="btnFire" class="ctrl-btn fire-btn" aria-label="Atirar">FIRE</button>
+        </div>
+    </div>
+
+    <script src="audio.js"></script>
+    <script src="sprites.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
