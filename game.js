@@ -6,8 +6,8 @@ const GAME_W = 320, GAME_H = 480;
 const PLAYER_SPEED = 180, BULLET_SPEED = 500, ENEMY_BULLET_SPEED = 160;
 const BULLET_COOLDOWN = 0.25, ENERGY_DRAIN_RATE = 1.8, ENERGY_MAX = 100;
 const ENEMIES_PER_ROW = 6, ENEMY_ROWS = 3;
-const ENEMY_BASE_SPEED = 40, ENEMY_SPEED_INCREMENT = 6;
-const ENEMY_ZIGZAG_AMP = 70, ENEMY_DESCENT_SPEED = 6;
+const ENEMY_BASE_SPEED = 55, ENEMY_SPEED_INCREMENT = 7;
+const ENEMY_ZIGZAG_AMP = 65, ENEMY_DESCENT_SPEED = 8;
 const ENEMY_SHOOT_MIN = 2.0, ENEMY_SHOOT_MAX = 5.0;
 const MAX_LIVES = 3, EXPLOSION_DUR = 0.35;
 const LEVEL_INTRO_DUR = 2.5, STAR_COUNT = 60;
@@ -15,8 +15,8 @@ const EXTRA_LIFE_THRESHOLD = 50000;
 const BONUS_TICK_RATE = 0.03;
 
 // Caps de dificuldade (limites máximos para manter jogável)
-const ZIGZAG_SPEED_CAP = 120;      // velocidade máxima do zigue-zague
-const DESCENT_SPEED_CAP = 18;      // descida máxima (px/s)
+const ZIGZAG_SPEED_CAP = 140;      // velocidade máxima do zigue-zague
+const DESCENT_SPEED_CAP = 22;      // descida máxima (px/s)
 const SHOOT_INTERVAL_FLOOR = 0.6;  // intervalo mínimo entre tiros (s)
 const DIFFICULTY_RAMP_LEVELS = 24;  // níveis até atingir dificuldade máxima
 
@@ -226,7 +226,7 @@ function updateEnemies(dt){
         const zigAmp = ENEMY_ZIGZAG_AMP * mv.zigAmp;
         let xOff = Math.sin(time*zigFreq+e.phase) * zigAmp;
         if(mv.erratic>0) xOff += Math.sin(time*3.7+e.erraticOffset) * 20 * mv.erratic * (1 + diff*0.5);
-        e.x = e.baseX + xOff;
+        e.x = Math.max(e.w/2, Math.min(GAME_W - e.w/2, e.baseX + xOff));
         e.baseY += descentSpeed * mv.descent * dt;
         e.y = e.baseY;
         if(e.y>GAME_H-60){e.baseY=-20;e.y=e.baseY;}
