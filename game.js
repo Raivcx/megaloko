@@ -11,8 +11,14 @@ const ENEMY_ZIGZAG_AMP = 70, ENEMY_DESCENT_SPEED = 6;
 const ENEMY_SHOOT_MIN = 2.0, ENEMY_SHOOT_MAX = 5.0;
 const MAX_LIVES = 3, EXPLOSION_DUR = 0.35;
 const LEVEL_INTRO_DUR = 2.5, STAR_COUNT = 60;
-const EXTRA_LIFE_THRESHOLD = 10000;
+const EXTRA_LIFE_THRESHOLD = 50000;
 const BONUS_TICK_RATE = 0.03;
+
+// Caps de dificuldade (limites máximos para manter jogável)
+const ZIGZAG_SPEED_CAP = 120;      // velocidade máxima do zigue-zague
+const DESCENT_SPEED_CAP = 18;      // descida máxima (px/s)
+const SHOOT_INTERVAL_FLOOR = 0.6;  // intervalo mínimo entre tiros (s)
+const DIFFICULTY_RAMP_LEVELS = 24;  // níveis até atingir dificuldade máxima
 
 const BG_COLORS = ['#000000','#0A0A3C','#2A0A2A','#0A2A1A','#2A1A0A','#1A0A2A'];
 
@@ -30,6 +36,11 @@ let touchLeft=false, touchRight=false, touchFire=false;
 
 function getCycle() { return Math.floor((level-1)/8)+1; }
 function getBgColor() { return BG_COLORS[Math.min(getCycle()-1, BG_COLORS.length-1)]; }
+
+// Retorna fator de 0.0 (nível 1) a 1.0 (nível DIFFICULTY_RAMP_LEVELS+)
+function getDifficultyScale() {
+    return Math.min(1, (level - 1) / DIFFICULTY_RAMP_LEVELS);
+}
 
 function initStars() {
     stars=[];
@@ -198,34 +209,43 @@ function updateBullets(dt){
 }
 
 function updateEnemies(dt){
-    const spd=ENEMY_BASE_SPEED+(level-1)*ENEMY_SPEED_INCREMENT;
-    const time=performance.now()/1000;
-    const type=enemies.length>0?enemies[0].type:'hamburger';
-    const mv=getEnemyMovement(type);
+    const diff = getDifficultyScale();
+    const time = performance.now()/1000;
+    const type = enemies.length>0?enemies[0].type:'hamburger';
+    const mv = getEnemyMovement(type);
+
+    // Zigue-zague: escala de BASE até CAP com o nível
+    const zigSpeed = Math.min(ZIGZAG_SPEED_CAP, ENEMY_BASE_SPEED + (level-1) * ENEMY_SPEED_INCREMENT);
+
+    // Descida: escala de 6 até CAP (ex: 6 → 18 ao longo de 24 níveis)
+    const descentSpeed = ENEMY_DESCENT_SPEED + diff * (DESCENT_SPEED_CAP - ENEMY_DESCENT_SPEED);
 
     enemies.forEach(e=>{
         if(!e.alive)return;
-        const zigFreq=spd/30*mv.zigSpeed;
-        const zigAmp=ENEMY_ZIGZAG_AMP*mv.zigAmp;
-        let xOff=Math.sin(time*zigFreq+e.phase)*zigAmp;
-        if(mv.erratic>0) xOff+=Math.sin(time*3.7+e.erraticOffset)*20*mv.erratic;
-        e.x=e.baseX+xOff;
-        e.baseY+=ENEMY_DESCENT_SPEED*mv.descent*dt;
-        e.y=e.baseY;
+        const zigFreq = zigSpeed/30 * mv.zigSpeed;
+        const zigAmp = ENEMY_ZIGZAG_AMP * mv.zigAmp;
+        let xOff = Math.sin(time*zigFreq+e.phase) * zigAmp;
+        if(mv.erratic>0) xOff += Math.sin(time*3.7+e.erraticOffset) * 20 * mv.erratic * (1 + diff*0.5);
+        e.x = e.baseX + xOff;
+        e.baseY += descentSpeed * mv.descent * dt;
+        e.y = e.baseY;
         if(e.y>GAME_H-60){e.baseY=-20;e.y=e.baseY;}
     });
 
     // Dice não atiram
     if(type==='dice') return;
 
-    enemyShootTimer-=dt;
+    // Agressividade de tiro: intervalo diminui com o nível, mas nunca abaixo do FLOOR
+    enemyShootTimer -= dt;
     if(enemyShootTimer<=0){
-        const alive=enemies.filter(e=>e.alive);
+        const alive = enemies.filter(e=>e.alive);
         if(alive.length>0){
-            const shooter=alive[Math.floor(Math.random()*alive.length)];
-            spawnEnemyBullet(shooter.x,shooter.y+shooter.h/2);
+            const shooter = alive[Math.floor(Math.random()*alive.length)];
+            spawnEnemyBullet(shooter.x, shooter.y+shooter.h/2);
         }
-        enemyShootTimer=Math.max(0.8,ENEMY_SHOOT_MIN-level*0.08)+Math.random()*Math.max(1,ENEMY_SHOOT_MAX-level*0.15);
+        const minInterval = Math.max(SHOOT_INTERVAL_FLOOR, ENEMY_SHOOT_MIN - diff * 1.2);
+        const maxInterval = Math.max(SHOOT_INTERVAL_FLOOR + 0.4, ENEMY_SHOOT_MAX - diff * 3.5);
+        enemyShootTimer = minInterval + Math.random() * (maxInterval - minInterval);
     }
 }
 
