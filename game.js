@@ -440,65 +440,71 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('keyup',e=>{keys[e.code]=false;});
 
-// --- Multi-touch system ---
+// --- Multi-touch system (robusto) ---
+const mobileUI=document.getElementById('mobileUI');
 const btnLeft=document.getElementById('btnLeft');
 const btnRight=document.getElementById('btnRight');
 const btnFire=document.getElementById('btnFire');
 const btnPause=document.getElementById('btnPause');
 
-const touchIds = { left: null, right: null, fire: null };
+// Mapa de touchId → {key, el}
+const activeTouches = new Map();
+const btnMap = new Map();
+btnMap.set(btnLeft, 'left');
+btnMap.set(btnRight, 'right');
+btnMap.set(btnFire, 'fire');
 
-function setTouchState(btn, key, active) {
+function setTouchState(key, active, el) {
     if(key==='left') touchLeft=active;
     if(key==='right') touchRight=active;
     if(key==='fire') touchFire=active;
-    btn.classList.toggle('active', active);
+    if(el) el.classList.toggle('active', active);
 }
 
-function bindMultiTouch(el, key) {
+function releaseTouch(id) {
+    const info = activeTouches.get(id);
+    if(info) {
+        setTouchState(info.key, false, info.el);
+        activeTouches.delete(id);
+    }
+}
+
+// Touchstart nos botões
+[btnLeft, btnRight, btnFire].forEach(el => {
     el.addEventListener('touchstart', e => {
         e.preventDefault(); e.stopPropagation();
         AudioManager.init();
-        const t = e.changedTouches[0];
-        touchIds[key] = t.identifier;
-        setTouchState(el, key, true);
-    }, {passive:false});
-
-    el.addEventListener('touchend', e => {
-        e.preventDefault(); e.stopPropagation();
         for(let i=0;i<e.changedTouches.length;i++){
-            if(e.changedTouches[i].identifier === touchIds[key]){
-                touchIds[key]=null;
-                setTouchState(el, key, false);
-                break;
-            }
+            const t = e.changedTouches[i];
+            const key = btnMap.get(el);
+            activeTouches.set(t.identifier, {key, el});
+            setTouchState(key, true, el);
         }
     }, {passive:false});
+});
 
-    el.addEventListener('touchcancel', e => {
-        e.preventDefault(); e.stopPropagation();
-        for(let i=0;i<e.changedTouches.length;i++){
-            if(e.changedTouches[i].identifier === touchIds[key]){
-                touchIds[key]=null;
-                setTouchState(el, key, false);
-                break;
-            }
-        }
-    }, {passive:false});
+// Global touchend/cancel no document (captura dedos que deslizam para fora)
+function handleTouchRelease(e) {
+    for(let i=0;i<e.changedTouches.length;i++){
+        releaseTouch(e.changedTouches[i].identifier);
+    }
 }
+document.addEventListener('touchend', handleTouchRelease, {passive:false});
+document.addEventListener('touchcancel', handleTouchRelease, {passive:false});
 
-bindMultiTouch(btnLeft, 'left');
-bindMultiTouch(btnRight, 'right');
-bindMultiTouch(btnFire, 'fire');
-
+// Pause
 btnPause.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();togglePause();},{passive:false});
 btnPause.addEventListener('click',e=>{e.preventDefault();togglePause();});
 
-// Canvas touch: only for starting game on title/gameover
+// Canvas touch: só para iniciar na tela título/gameover
 canvas.addEventListener('touchstart',e=>{
     e.preventDefault();
     if(state==='title'||state==='gameOver'){AudioManager.init();startGame();}
 },{passive:false});
+
+// Detecção JS de touch como fallback para notebooks híbridos
+function enableMobileUI(){mobileUI.style.display='block';}
+window.addEventListener('touchstart', enableMobileUI, {once:true, passive:true});
 
 let lastTime=0;
 function gameLoop(ts){
@@ -510,4 +516,3 @@ window.addEventListener('resize',resize);
 window.addEventListener('orientationchange',()=>{setTimeout(resize,100);});
 requestAnimationFrame(ts=>{lastTime=ts;gameLoop(ts);});
 })();
-
